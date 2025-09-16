@@ -1,0 +1,46 @@
+Here’s the stack tailored for your plan:
+
+🌐 Frontend (User Interface)
+
+Next.js (React framework) → build the PC browser app first.
+
+Language: JavaScript (simpler than TypeScript for beginners).
+
+Styling: Tailwind CSS (easy, utility-based CSS).
+
+Components: shadcn/ui (ready-made UI pieces like buttons, cards).
+
+Expo (React Native) → later, reuse most of the logic for Android + iOS apps.
+
+UI: NativeWind (Tailwind-like styling for React Native).
+
+Media handling: expo-image-picker and expo-av for photos, videos, and voice notes.
+⚙️ Backend (Logic + AI + Database)
+
+Supabase (all-in-one backend):
+
+Database: Postgres (stores problem logs, notes, statuses).
+
+Authentication: built-in (users can log in with email, Google, etc.).
+
+Storage: photos, videos, and voice notes.
+
+OpenAI APIs:
+
+GPT-4o-mini → diagnoses problems, suggests DIY fixes.
+
+Whisper → turns voice notes into text.
+
+🚀 Hosting & DevOps
+
+Vercel → deploy the Next.js web app (super simple, one click).
+
+Supabase Cloud → hosts database, auth, and storage.
+
+Expo EAS → builds Android & iOS apps once we’re ready.
+
+📊 Extra (Optional, nice-to-have later)
+
+Sentry → error tracking.
+
+PostHog → analytics (which features people use).

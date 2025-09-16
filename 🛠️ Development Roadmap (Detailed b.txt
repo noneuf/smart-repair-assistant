@@ -1,0 +1,86 @@
+🛠️ Development Roadmap (Detailed but High-Level)
+Phase 1 – Setup Foundations
+
+Choose the tech stack (Next.js + Supabase + OpenAI for web first).
+
+Create the project repo and initial Next.js app.
+
+Connect Supabase (database + auth + storage).
+
+Deploy a “Hello World” page on Vercel (so you have something live early).
+
+Phase 2 – Core Input Flow
+
+Build Onboarding / Home screen with two buttons:
+
+“Report a Problem”
+
+“My Problem Log”
+
+Build Report a Problem screen: upload photo, video, text, voice.
+
+Send input to backend → call OpenAI API.
+
+Phase 3 – AI Diagnosis
+
+Show AI’s response:
+
+Problem name, likely causes.
+
+Actions:
+
+“Show DIY Fix Suggestions”
+
+“Find a Professional” (open external link)
+
+“Save to My Problem Log”
+
+Phase 4 – DIY Fix Suggestions
+
+Display step-by-step text instructions + simple visuals.
+
+Add “Mark as Tried” → updates problem status.
+
+Phase 5 – Problem Log & Details
+
+Build Problem Log screen (list of issues + statuses).
+
+Build Problem Detail screen (photos, diagnosis, notes, status history).
+
+Enable editing status (In Progress, Fixed, Not Fixed).
+
+Phase 6 – Authentication & Accounts
+
+Add user sign-in/up with Supabase Auth.
+
+Make logs private (per user).
+
+Phase 7 – Media & Voice
+
+Reliable photo/video uploads → Supabase Storage.
+
+Voice notes → Whisper API → text.
+
+Phase 8 – Polishing & Safety
+
+Handle loading states, error messages.
+
+Add a short tutorial (Snap → Diagnose → Fix).
+
+Improve styling & responsiveness.
+
+Phase 9 – Launch Web App
+
+Deploy to Vercel with production DB.
+
+Add basic error tracking + analytics (Sentry, PostHog optional).
+
+Phase 10 – Mobile Apps
+
+Start Expo project.
+
+Reuse logic (same API + database).
+
+Build same screens for Android & iOS.
+
+Publish to app stores.

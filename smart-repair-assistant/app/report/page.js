@@ -145,7 +145,6 @@ export default function ReportPage() {
   async function getDiagnosis() {
   const payload = {
     description: description || "",
-    transcript: voiceTranscript || "",
   };
   if (!payload.description && !payload.transcript) {
     alert("Please add a description or transcribe a voice note first.");
@@ -312,8 +311,11 @@ export default function ReportPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             description: description || "",
-            transcript: voiceTranscript || "",
-          }),
+            voice_transcript: voiceTranscript || "", // <-- matches your API
+            imageUrl: imageUrl || undefined,        // <-- send the PUBLIC image URL you uploaded above
+            videoUrl: videoUrl || undefined,        // <-- NEW
+      }),
+
         });
         const json = await res.json();
         if (res.ok && json?.diagnosis) {

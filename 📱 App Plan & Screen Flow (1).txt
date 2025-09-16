@@ -1,0 +1,115 @@
+📱 App Plan & Screen Flow
+1. Onboarding / Home Screen
+
+Purpose: Introduce the app and its value.
+
+Main Actions:
+
+“Report a Problem” (big button)
+
+“My Problem Log” (to view past issues)
+
+Optional: Short tutorial showing: Snap → Diagnose → Fix.
+
+2. Report a Problem (Input Screen)
+
+User Options:
+
+📷 Upload photo
+
+🎥 Upload video
+
+📝 Type description
+
+🎙️ Record voice note
+
+Backend: Content is sent to the LLM (ChatGPT API).
+
+3. AI Diagnosis Screen
+
+Shows:
+
+Possible problem name (e.g., “Leaking faucet”)
+
+Likely causes (e.g., “worn rubber seal, clogged aerator”)
+
+Actions:
+
+🔧 “Show DIY Fix Suggestions”
+
+👨‍🔧 “Find a Professional” (opens Midrag or other service site)
+
+💾 “Save to My Problem Log”
+
+4. DIY Suggestions Screen
+
+Shows step-by-step instructions for possible fixes (text + simple visuals).
+
+Example:
+
+Turn off water supply.
+
+Unscrew faucet head.
+
+Clean or replace seal.
+
+Action: Button to mark as “Tried” and update status.
+
+5. Professional Recommendation Screen
+
+Integration: Opens Midrag (or similar) in in-app browser.
+
+Bonus (future): API integration to show top-rated professionals by location.
+
+6. Problem Log Screen
+
+List view of all reported issues.
+
+Example:
+
+[Broken Window] – Status: In Progress
+
+[Leaking Faucet] – Status: Fixed
+
+[Cracked Wall] – Status: Not Fixed
+
+Each entry:
+
+Photo / short description
+
+Status dropdown: In Progress / Fixed / Not Fixed
+
+Notes field for updates.
+
+7. Problem Detail Screen
+
+Shows:
+
+Original image/video/description
+
+AI diagnosis + suggestions
+
+Status history + user notes
+
+Action: Update status, add note, delete entry.
+
+🛠️ Technical Notes (MVP Level)
+
+Frontend: Flutter / React Native → cross-platform (iOS + Android).
+
+Backend:
+
+API calls to OpenAI (ChatGPT / GPT-4o-mini for speed & multimodal).
+
+Firebase or Supabase for user authentication & database (Problem Log).
+
+Storage:
+
+Cloud storage for uploaded images/videos.
+
+DB table: problems with fields → id, userId, title, description, mediaUrl, aiDiagnosis, status, notes, timestamps.
+
+Instructions:
+1. I am not a pro developer so I need your patience and help
+2. I Want you to always give me one step at a time even if its a tiny step, never give me more than one step or instruction at a time.
+3. for every step always give me specific explanations so I understand why and what. 
