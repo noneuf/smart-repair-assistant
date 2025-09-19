@@ -26,6 +26,9 @@ export default function ReportPage() {
   const [diagnosis, setDiagnosis] = useState(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+
 
   function handleImageChange(e) {
     const file = e.target.files[0];
@@ -177,16 +180,35 @@ export default function ReportPage() {
       <h1 className="text-2xl font-bold">Report a Problem</h1>
 
       {/* Photo Upload */}
-      <section>
-        <label className="block mb-2 font-medium">Upload a photo:</label>
-        <input type="file" accept="image/*" onChange={handleImageChange} />
-      </section>
+<section>
+  <label className="block mb-2 font-medium">Upload a photo:</label>
+  <label className="btn btn-ghost border border-gray-300 cursor-pointer w-fit">
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleImageChange}
+      className="hidden"
+    />
+    Upload a photo
+    <span className="btn-shine" aria-hidden />
+  </label>
+</section>
 
-      {/* Video Upload */}
-      <section>
-        <label className="block mb-2 font-medium">Upload a video:</label>
-        <input type="file" accept="video/*" onChange={handleVideoChange} />
-      </section>
+{/* Video Upload */}
+<section>
+  <label className="block mb-2 font-medium">Upload a video:</label>
+  <label className="btn btn-ghost border border-gray-300 cursor-pointer w-fit">
+    <input
+      type="file"
+      accept="video/*"
+      onChange={handleVideoChange}
+      className="hidden"
+    />
+    Upload a video
+    <span className="btn-shine" aria-hidden />
+  </label>
+</section>
+
 
       {/* Free-text Description */}
       <section>
@@ -208,6 +230,7 @@ export default function ReportPage() {
               onClick={startRecording}
               className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
             >
+            <span className="btn-shine" aria-hidden />
               Start Recording
             </button>
           ) : (
@@ -215,6 +238,7 @@ export default function ReportPage() {
               onClick={stopRecording}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
             >
+              <span className="btn-shine" aria-hidden />
               Stop
             </button>
           )}
@@ -268,6 +292,7 @@ export default function ReportPage() {
   disabled={!audioFile || isTranscribing}
   className="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
 >
+  <span className="btn-shine" aria-hidden />
   {isTranscribing ? "Transcribing…" : "Transcribe voice note"}
 </button>
 
@@ -287,12 +312,15 @@ export default function ReportPage() {
   disabled={!voiceTranscript}
   className="mt-2 bg-gray-800 text-white px-3 py-2 rounded disabled:opacity-50"
 >
+  <span className="btn-shine" aria-hidden />
   Use transcript as description
 </button>
 
 
 <button
   onClick={async () => {
+    setIsSaving(true);
+    setJustSaved(false);
     try {
       let imageUrl = null;
       let videoUrl = null;
@@ -311,15 +339,14 @@ export default function ReportPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             description: description || "",
-            voice_transcript: voiceTranscript || "", // <-- matches your API
-            imageUrl: imageUrl || undefined,        // <-- send the PUBLIC image URL you uploaded above
-            videoUrl: videoUrl || undefined,        // <-- NEW
-      }),
-
+            voice_transcript: voiceTranscript || "",
+            imageUrl: imageUrl || undefined,
+            videoUrl: videoUrl || undefined,
+          }),
         });
         const json = await res.json();
         if (res.ok && json?.diagnosis) {
-          aiDiagnosis = json.diagnosis; // object that matches your JSON schema
+          aiDiagnosis = json.diagnosis;
         } else {
           console.warn("Diagnosis failed:", json?.error);
         }
@@ -337,7 +364,7 @@ export default function ReportPage() {
           video_url: videoUrl,
           audio_url: audioPublicUrl,
           voice_transcript: voiceTranscript || null,
-          ai_diagnosis: aiDiagnosis, // jsonb
+          ai_diagnosis: aiDiagnosis,
           status: "in_progress",
         }])
         .select("id, image_url, video_url, audio_url, voice_transcript, ai_diagnosis, created_at")
@@ -348,6 +375,9 @@ export default function ReportPage() {
         alert("Insert failed: " + error.message);
         return;
       }
+
+      setJustSaved(true);  // success pulse
+      setTimeout(() => setJustSaved(false), 900);
 
       alert(
         `Saved!\n` +
@@ -361,12 +391,35 @@ export default function ReportPage() {
     } catch (e) {
       console.error(e);
       alert("Upload/insert error: " + (e.message || "see console"));
+    } finally {
+      setIsSaving(false);
     }
   }}
-  className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+  disabled={isSaving}
+  aria-busy={isSaving ? "true" : "false"}
+  className={[
+    "w-full btn btn-primary py-3 rounded-xl relative overflow-hidden will-change-transform",
+    isSaving ? "btn-disabled cursor-wait" : "active:btn-press",
+    justSaved ? "btn-success-pulse" : ""
+  ].join(" ")}
 >
-  Submit Problem
+  {isSaving ? (
+    <span className="inline-flex items-center gap-2">
+      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+      </svg>
+      Submitting…
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-2">
+      Submit Problem
+      <span className="btn-shine" aria-hidden />
+    </span>
+  )}
 </button>
+
+
 
       </section>
     </main>
