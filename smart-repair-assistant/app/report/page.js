@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function ReportPage() {
-  const [image, setImage] = useState(null);        // preview URL
-  const [imageFile, setImageFile] = useState(null); // actual File
+  const router = useRouter();
+  const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [video, setVideo] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
   const [description, setDescription] = useState("");
@@ -18,7 +20,6 @@ export default function ReportPage() {
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isTranscribing, setIsTranscribing] = useState(false);
 
-
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
@@ -29,7 +30,7 @@ export default function ReportPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
-
+  // Keep all your existing functions exactly the same
   function handleImageChange(e) {
     const file = e.target.files[0];
     if (file) {
@@ -39,13 +40,12 @@ export default function ReportPage() {
   }
 
   function handleVideoChange(e) {
-  const file = e.target.files[0];
-  if (file) {
-    setVideoFile(file);
-    setVideo(URL.createObjectURL(file));
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      setVideo(URL.createObjectURL(file));
+    }
   }
-}
-
 
   async function startRecording() {
     setError("");
@@ -58,17 +58,13 @@ export default function ReportPage() {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
       mr.onstop = () => {
-  const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-  const url = URL.createObjectURL(blob);
-  setAudioUrl(url);
-
-  // NEW: keep a File for uploading later
-  const file = new File([blob], `voice-${Date.now()}.webm`, { type: "audio/webm" });
-  setAudioFile(file);
-
-  // turn off the mic
-  stream.getTracks().forEach((t) => t.stop());
-};
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        const file = new File([blob], `voice-${Date.now()}.webm`, { type: "audio/webm" });
+        setAudioFile(file);
+        stream.getTracks().forEach((t) => t.stop());
+      };
 
       mediaRecorderRef.current = mr;
       mr.start();
@@ -95,38 +91,31 @@ export default function ReportPage() {
   }
 
   async function transcribeVoice() {
-  if (!audioFile) {
-    alert("Please record a voice note first.");
-    return;
+    if (!audioFile) {
+      alert("Please record a voice note first.");
+      return;
+    }
+    try {
+      setIsTranscribing(true);
+      const form = new FormData();
+      form.append("file", audioFile);
+
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        body: form,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Transcription failed");
+      setVoiceTranscript(json.text || "");
+    } catch (err) {
+      console.error(err);
+      alert("Transcription error: " + (err.message || "see console"));
+    } finally {
+      setIsTranscribing(false);
+    }
   }
-  try {
-    setIsTranscribing(true);
-    const form = new FormData();
-    form.append("file", audioFile);
 
-    const res = await fetch("/api/transcribe", {
-      method: "POST",
-      body: form,
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || "Transcription failed");
-    setVoiceTranscript(json.text || "");
-  } catch (err) {
-    console.error(err);
-    alert("Transcription error: " + (err.message || "see console"));
-  } finally {
-    setIsTranscribing(false);
-  }
-}
-
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-    async function uploadToStorage(file, folder = "images") {
+  async function uploadToStorage(file, folder = "images") {
     const ext = file.name.split(".").pop() || "bin";
     const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
@@ -142,286 +131,281 @@ export default function ReportPage() {
       .from("problem-media")
       .getPublicUrl(path);
 
-    return publicData.publicUrl; // string
+    return publicData.publicUrl;
   }
 
-  async function getDiagnosis() {
-  const payload = {
-    description: description || "",
-  };
-  if (!payload.description && !payload.transcript) {
-    alert("Please add a description or transcribe a voice note first.");
-    return;
-  }
-  try {
-    setIsDiagnosing(true);
-    const res = await fetch("/api/diagnose", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || "Diagnosis failed");
-    setDiagnosis(json.diagnosis || null);
-  } catch (err) {
-    console.error(err);
-    alert("AI diagnosis error: " + (err.message || "see console"));
-  } finally {
-    setIsDiagnosing(false);
-  }
-}
-
-
-
-
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   return (
-    <main className="max-w-xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Report a Problem</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Report Problem</h1>
+              <p className="text-sm text-gray-500">Describe your issue for AI diagnosis</p>
+            </div>
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Photo Upload */}
-<section>
-  <label className="block mb-2 font-medium">Upload a photo:</label>
-  <label className="btn btn-ghost border border-gray-300 cursor-pointer w-fit">
-    <input
-      type="file"
-      accept="image/*"
-      onChange={handleImageChange}
-      className="hidden"
-    />
-    Upload a photo
-    <span className="btn-shine" aria-hidden />
-  </label>
-</section>
+      {/* Content */}
+      <div className="px-6 py-6 space-y-6">
+        
+        {/* Input Methods Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-medium text-gray-900 mb-4">Choose input method</h2>
+          
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            
+            {/* Photo Button */}
+            <label className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-colors">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              <span className="text-sm font-medium text-slate-700">Photo</span>
+            </label>
 
-{/* Video Upload */}
-<section>
-  <label className="block mb-2 font-medium">Upload a video:</label>
-  <label className="btn btn-ghost border border-gray-300 cursor-pointer w-fit">
-    <input
-      type="file"
-      accept="video/*"
-      onChange={handleVideoChange}
-      className="hidden"
-    />
-    Upload a video
-    <span className="btn-shine" aria-hidden />
-  </label>
-</section>
+            {/* Video Button */}
+            <label className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-colors">
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleVideoChange}
+                className="hidden"
+              />
+              <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              <span className="text-sm font-medium text-slate-700">Video</span>
+            </label>
 
-
-      {/* Free-text Description */}
-      <section>
-        <label className="block mb-2 font-medium">Describe the problem:</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="e.g., Water is dripping from the faucet even when closed…"
-          className="w-full h-28 p-3 border rounded-lg focus:outline-none focus:ring"
-        />
-      </section>
-
-      {/* Voice Note */}
-      <section className="border rounded-lg p-4 bg-white shadow-sm">
-        <h2 className="font-semibold mb-2">Record a voice note</h2>
-        <div className="flex items-center gap-3">
-          {!isRecording ? (
-            <button
-              onClick={startRecording}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            {/* Voice Button */}
+            <button 
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-colors ${
+                isRecording 
+                  ? 'bg-red-50 hover:bg-red-100 border-red-200' 
+                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
+              }`}
             >
-            <span className="btn-shine" aria-hidden />
-              Start Recording
+              <svg className={`w-6 h-6 mb-2 ${isRecording ? 'text-red-600' : 'text-slate-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+              </svg>
+              <span className={`text-sm font-medium ${isRecording ? 'text-red-700' : 'text-slate-700'}`}>
+                {isRecording ? "Stop" : "Voice"}
+              </span>
+              {isRecording && (
+                <span className="text-xs text-red-600 mt-1">
+                  {String(Math.floor(seconds / 60)).padStart(2, "0")}:
+                  {String(seconds % 60).padStart(2, "0")}
+                </span>
+              )}
             </button>
-          ) : (
-            <button
-              onClick={stopRecording}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+
+            {/* Text Button */}
+            <button 
+              onClick={() => document.getElementById('description').focus()}
+              className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
             >
-              <span className="btn-shine" aria-hidden />
-              Stop
+              <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+              </svg>
+              <span className="text-sm font-medium text-slate-700">Text</span>
             </button>
-          )}
-          <span className="text-sm text-gray-600">
-            {isRecording ? "Recording…" : "Not recording"}
-          </span>
-          {isRecording && (
-            <span className="text-sm font-mono px-2 py-1 bg-gray-100 rounded">
-              {String(Math.floor(seconds / 60)).padStart(2, "0")}:
-              {String(seconds % 60).padStart(2, "0")}
-            </span>
-          )}
+
+          </div>
+
+          {/* Description Textarea */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your problem in detail..."
+              className="w-full h-24 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-700 placeholder-gray-400"
+            />
+          </div>
         </div>
 
-        {error && <p className="text-red-600 mt-2">{error}</p>}
-
+        {/* Voice Controls Card */}
         {audioUrl && (
-          <div className="mt-4">
-            <p className="mb-2 font-medium">Voice Preview:</p>
-            <audio controls src={audioUrl} className="w-full" />
-            <p className="text-xs text-gray-500 mt-1">
-              (Next step: send this to Whisper to get text.)
-            </p>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-base font-medium text-gray-900 mb-4">Voice Recording</h3>
+            
+            <div className="mb-4">
+              <audio controls src={audioUrl} className="w-full" />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={transcribeVoice}
+                disabled={!audioFile || isTranscribing}
+                className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-2.5 px-4 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isTranscribing ? "Converting..." : "Convert to Text"}
+              </button>
+              
+              {voiceTranscript && (
+                <button
+                  onClick={() =>
+                    setDescription((prev) => (prev ? `${prev}\n${voiceTranscript}` : voiceTranscript))
+                  }
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl py-2.5 px-4 text-sm font-medium transition-colors"
+                >
+                  Use as Description
+                </button>
+              )}
+            </div>
+
+            {voiceTranscript && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-xl">
+                <p className="text-xs text-gray-500 mb-1">Transcript:</p>
+                <p className="text-sm text-gray-700">{voiceTranscript}</p>
+              </div>
+            )}
           </div>
         )}
-      </section>
 
-      {/* Previews */}
-      <section className="space-y-6">
-        {image && (
-          <div>
-            <p className="mb-2 font-medium">Photo Preview:</p>
-            <img src={image} alt="Preview" className="w-full rounded-lg shadow" />
+        {/* Media Preview Cards */}
+        {(image || video) && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-base font-medium text-gray-900 mb-4">Media Preview</h3>
+            
+            {image && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-2">Photo:</p>
+                <img src={image} alt="Preview" className="w-full rounded-xl" />
+              </div>
+            )}
+            
+            {video && (
+              <div>
+                <p className="text-sm text-gray-500 mb-2">Video:</p>
+                <video controls className="w-full rounded-xl">
+                  <source src={video} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )}
           </div>
         )}
-        {video && (
-          <div>
-            <p className="mb-2 font-medium">Video Preview:</p>
-            <video controls className="w-full rounded-lg shadow">
-              <source src={video} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+
+        {/* Submit Button */}
+        <button
+          onClick={async () => {
+            setIsSaving(true);
+            setJustSaved(false);
+            try {
+              let imageUrl = null;
+              let videoUrl = null;
+              let audioPublicUrl = null;
+
+              // Upload media if present
+              if (imageFile) imageUrl = await uploadToStorage(imageFile, "images");
+              if (videoFile) videoUrl = await uploadToStorage(videoFile, "videos");
+              if (audioFile) audioPublicUrl = await uploadToStorage(audioFile, "audio");
+
+              // Get AI diagnosis
+              let aiDiagnosis = null;
+              try {
+                const res = await fetch("/api/diagnose", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    description: description || "",
+                    voice_transcript: voiceTranscript || "",
+                    imageUrl: imageUrl || undefined,
+                    videoUrl: videoUrl || undefined,
+                  }),
+                });
+                const json = await res.json();
+                if (res.ok && json?.diagnosis) {
+                  aiDiagnosis = json.diagnosis;
+                } else {
+                  console.warn("Diagnosis failed:", json?.error);
+                }
+              } catch (e) {
+                console.warn("Diagnosis request error:", e);
+              }
+
+              // Insert into database
+              const { data, error } = await supabase
+                .from("problems")
+                .insert([{
+                  description,
+                  image_url: imageUrl,
+                  video_url: videoUrl,
+                  audio_url: audioPublicUrl,
+                  voice_transcript: voiceTranscript || null,
+                  ai_diagnosis: aiDiagnosis,
+                  status: "in_progress",
+                }])
+                .select("id, image_url, video_url, audio_url, voice_transcript, ai_diagnosis, created_at")
+                .single();
+
+              if (error) {
+                console.error(error);
+                alert("Insert failed: " + error.message);
+                return;
+              }
+
+              setJustSaved(true);
+              setTimeout(() => setJustSaved(false), 900);
+
+              // Redirect to diagnosis page
+              router.push(`/diagnose?id=${data.id}`);
+
+              console.log("Inserted row:", data);
+            } catch (e) {
+              console.error(e);
+              alert("Upload/insert error: " + (e.message || "see console"));
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+          disabled={isSaving || (!description && !voiceTranscript && !imageFile && !videoFile)}
+          className={`w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-4 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${justSaved ? 'bg-green-600 hover:bg-green-700' : ''}`}
+        >
+          {isSaving ? (
+            <span className="inline-flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+              </svg>
+              Processing & Saving...
+            </span>
+          ) : (
+            "Submit for AI Diagnosis"
+          )}
+        </button>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
-      </section>
-            {/* Submit button */}
-            <section className="mt-8">
-
-            <button
-  onClick={transcribeVoice}
-  disabled={!audioFile || isTranscribing}
-  className="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
->
-  <span className="btn-shine" aria-hidden />
-  {isTranscribing ? "Transcribing…" : "Transcribe voice note"}
-</button>
-
-{voiceTranscript && (
-  <div className="mt-3">
-    <p className="text-sm text-gray-600 mb-1">Transcript:</p>
-    <div className="whitespace-pre-wrap p-3 border rounded-lg bg-gray-50">
-      {voiceTranscript}
+      </div>
     </div>
-  </div>
-)}
-
-<button
-  onClick={() =>
-    setDescription((prev) => (prev ? `${prev}\n${voiceTranscript}` : voiceTranscript))
-  }
-  disabled={!voiceTranscript}
-  className="mt-2 bg-gray-800 text-white px-3 py-2 rounded disabled:opacity-50"
->
-  <span className="btn-shine" aria-hidden />
-  Use transcript as description
-</button>
-
-
-<button
-  onClick={async () => {
-    setIsSaving(true);
-    setJustSaved(false);
-    try {
-      let imageUrl = null;
-      let videoUrl = null;
-      let audioPublicUrl = null;
-
-      // 1) Upload media if present
-      if (imageFile) imageUrl = await uploadToStorage(imageFile, "images");
-      if (videoFile) videoUrl = await uploadToStorage(videoFile, "videos");
-      if (audioFile) audioPublicUrl = await uploadToStorage(audioFile, "audio");
-
-      // 2) Ask AI for diagnosis (description + transcript)
-      let aiDiagnosis = null;
-      try {
-        const res = await fetch("/api/diagnose", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description: description || "",
-            voice_transcript: voiceTranscript || "",
-            imageUrl: imageUrl || undefined,
-            videoUrl: videoUrl || undefined,
-          }),
-        });
-        const json = await res.json();
-        if (res.ok && json?.diagnosis) {
-          aiDiagnosis = json.diagnosis;
-        } else {
-          console.warn("Diagnosis failed:", json?.error);
-        }
-      } catch (e) {
-        console.warn("Diagnosis request error:", e);
-        // continue without AI if it fails
-      }
-
-      // 3) Insert the problem row with everything
-      const { data, error } = await supabase
-        .from("problems")
-        .insert([{
-          description,
-          image_url: imageUrl,
-          video_url: videoUrl,
-          audio_url: audioPublicUrl,
-          voice_transcript: voiceTranscript || null,
-          ai_diagnosis: aiDiagnosis,
-          status: "in_progress",
-        }])
-        .select("id, image_url, video_url, audio_url, voice_transcript, ai_diagnosis, created_at")
-        .single();
-
-      if (error) {
-        console.error(error);
-        alert("Insert failed: " + error.message);
-        return;
-      }
-
-      setJustSaved(true);  // success pulse
-      setTimeout(() => setJustSaved(false), 900);
-
-      alert(
-        `Saved!\n` +
-        `Problem id: ${data.id}\n` +
-        `Image: ${data.image_url ? "yes" : "no"} | ` +
-        `Video: ${data.video_url ? "yes" : "no"} | ` +
-        `Audio: ${data.audio_url ? "yes" : "no"}\n` +
-        `AI diagnosis: ${data.ai_diagnosis ? "included" : "not available"}`
-      );
-      console.log("Inserted row:", data);
-    } catch (e) {
-      console.error(e);
-      alert("Upload/insert error: " + (e.message || "see console"));
-    } finally {
-      setIsSaving(false);
-    }
-  }}
-  disabled={isSaving}
-  aria-busy={isSaving ? "true" : "false"}
-  className={[
-    "w-full btn btn-primary py-3 rounded-xl relative overflow-hidden will-change-transform",
-    isSaving ? "btn-disabled cursor-wait" : "active:btn-press",
-    justSaved ? "btn-success-pulse" : ""
-  ].join(" ")}
->
-  {isSaving ? (
-    <span className="inline-flex items-center gap-2">
-      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-      </svg>
-      Submitting…
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-2">
-      Submit Problem
-      <span className="btn-shine" aria-hidden />
-    </span>
-  )}
-</button>
-
-
-
-      </section>
-    </main>
   );
 }

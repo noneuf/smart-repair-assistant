@@ -63,13 +63,16 @@ function buildUserContent({ userText, imageUrl, imageBase64 }) {
       image_url: { url: imageUrl }, // optionally add: detail: "high"
     });
   }
-  content.push({
-    type: "text",
-    text:
-      "Return ONLY a JSON object with keys: " +
-      "problem_name (string), likely_causes (string[]), diy_steps (string[]), " +
-      "caution_notes (string[]), need_professional (boolean), confidence (number 0..1). No extra text.",
-  });
+content.push({
+  type: "text",
+  text:
+    "Return ONLY a JSON object with keys: " +
+    "problem_name (string), likely_cause (string), diy_steps (string[]), " +
+    "caution_notes (string), need_professional (string), confidence (number 0..1), " +
+    "analysis_cost_nis (number, professional analysis/diagnostic fee in Israeli Shekels), " +
+    "fix_cost_nis (number, estimated repair cost in Israeli Shekels). " +
+    "Base costs on Israeli market rates. No extra text."
+});
   return content;
 }
 
