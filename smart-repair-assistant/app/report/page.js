@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function ReportPage() {
   const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [image, setImage] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [video, setVideo] = useState(null);
@@ -115,6 +117,18 @@ export default function ReportPage() {
     }
   }
 
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      // Clear user state immediately
+      setUser(null);
+    } catch (error) {
+      console.error('Error signing out:', error.message);
+      alert('Error signing out: ' + error.message);
+    }
+  };
+
   async function uploadToStorage(file, folder = "images") {
     const ext = file.name.split(".").pop() || "bin";
     const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -135,10 +149,51 @@ export default function ReportPage() {
   }
 
   useEffect(() => {
+    // Check if we just came back from OAuth (look for fragments or params)
+    const url = new URL(window.location.href);
+    const hasAuthFragment = url.hash.includes('access_token') || url.searchParams.has('code');
+    
+    if (hasAuthFragment) {
+      console.log('Detected OAuth redirect, checking session in 2 seconds...');
+      // Wait a bit for Supabase to process the OAuth callback
+      setTimeout(() => {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+          console.log('Delayed session check after OAuth:', { session, error });
+          setUser(session?.user ?? null);
+          setAuthLoading(false);
+        });
+      }, 2000);
+    } else {
+      // Normal session check
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        console.log('Normal session check:', { session, error });
+        setUser(session?.user ?? null);
+        setAuthLoading(false);
+        
+        // Redirect to login if no user
+        if (!session?.user) {
+          router.push('/auth');
+        }
+      });
+    }
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Main page auth change:', event, session);
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+      
+      // Redirect to login if signed out
+      if (!session?.user && event === 'SIGNED_OUT') {
+        router.push('/auth');
+      }
+    });
+
     return () => {
+      subscription.unsubscribe();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, []); // Remove router from dependency array
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -150,12 +205,35 @@ export default function ReportPage() {
               <h1 className="text-xl font-semibold text-gray-900">Report Problem</h1>
               <p className="text-sm text-gray-500">Describe your issue for AI diagnosis</p>
             </div>
-            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              </svg>
-            </div>
+            
+            {/* User Avatar & Sign Out */}
+            {user && (
+              <div className="flex items-center gap-3">
+                {user.user_metadata?.avatar_url && (
+                  <img 
+                    src={user.user_metadata.avatar_url} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <button
+                  onClick={signOut}
+                  className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+            
+            {/* Default Icon when not logged in */}
+            {!user && (
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -312,9 +390,14 @@ export default function ReportPage() {
 
         {/* Submit Button */}
         <button
-          onClick={async () => {
+          onClick={async (e) => {
+            e.preventDefault(); // Prevent any form submission behavior
             setIsSaving(true);
             setJustSaved(false);
+            
+            
+            console.log('Starting submission, user:', user?.id);
+            
             try {
               let imageUrl = null;
               let videoUrl = null;
@@ -324,6 +407,8 @@ export default function ReportPage() {
               if (imageFile) imageUrl = await uploadToStorage(imageFile, "images");
               if (videoFile) videoUrl = await uploadToStorage(videoFile, "videos");
               if (audioFile) audioPublicUrl = await uploadToStorage(audioFile, "audio");
+
+              console.log('Media uploaded, getting AI diagnosis...');
 
               // Get AI diagnosis
               let aiDiagnosis = null;
@@ -348,10 +433,13 @@ export default function ReportPage() {
                 console.warn("Diagnosis request error:", e);
               }
 
+              console.log('AI diagnosis received, inserting to database...');
+
               // Insert into database
               const { data, error } = await supabase
                 .from("problems")
                 .insert([{
+                  user_id: user?.id || null,
                   description,
                   image_url: imageUrl,
                   video_url: videoUrl,
@@ -364,16 +452,18 @@ export default function ReportPage() {
                 .single();
 
               if (error) {
-                console.error(error);
+                console.error("Database insert error:", error);
                 alert("Insert failed: " + error.message);
                 return;
               }
 
+              console.log('Problem saved, redirecting to:', `/diagnose?id=${data.id}`);
+
               setJustSaved(true);
               setTimeout(() => setJustSaved(false), 900);
 
-              // Redirect to diagnosis page
-              router.push(`/diagnose?id=${data.id}`);
+              // Force navigation using window.location
+              window.location.href = `/diagnose?id=${data.id}`;
 
               console.log("Inserted row:", data);
             } catch (e) {

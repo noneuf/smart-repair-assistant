@@ -11,8 +11,34 @@ export default function DiagnosePage() {
   const [problem, setProblem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      router.push('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error.message);
+      alert('Error signing out: ' + error.message);
+    }
+  };
 
   useEffect(() => {
+    // Check authentication
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    // Fetch problem data
     if (!problemId) {
       setError("No problem ID provided");
       setLoading(false);
@@ -38,6 +64,8 @@ export default function DiagnosePage() {
     }
 
     fetchProblem();
+
+    return () => subscription.unsubscribe();
   }, [problemId]);
 
   if (loading) {
@@ -88,7 +116,28 @@ export default function DiagnosePage() {
               <h1 className="text-xl font-semibold text-gray-900">Diagnosis Results</h1>
               <p className="text-sm text-gray-500">AI Analysis Complete</p>
             </div>
-            <div className="w-16"></div> {/* Spacer for center alignment */}
+            
+            {/* User Avatar & Sign Out */}
+            {user && (
+              <div className="flex items-center gap-3">
+                {user.user_metadata?.avatar_url && (
+                  <img 
+                    src={user.user_metadata.avatar_url} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <button
+                  onClick={signOut}
+                  className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+            
+            {/* Default space when not logged in */}
+            {!user && <div className="w-16"></div>}
           </div>
         </div>
       </div>
@@ -146,34 +195,6 @@ export default function DiagnosePage() {
               </div>
             </div>
             <p className="text-amber-800">{diagnosis.caution_notes}</p>
-          </div>
-        )}
-
-        {/* DIY Steps Card */}
-        {diagnosis?.diy_steps && Array.isArray(diagnosis.diy_steps) && diagnosis.diy_steps.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">DIY Fix Steps</h2>
-                <p className="text-sm text-gray-500">Try these solutions</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {diagnosis.diy_steps.map((step, index) => (
-                <div key={index} className="flex gap-4">
-                  <div className="flex-shrink-0 w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-sm font-medium">
-                    {index + 1}
-                  </div>
-                  <p className="text-gray-700 pt-0.5">{step}</p>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -236,6 +257,34 @@ export default function DiagnosePage() {
           </div>
         )}
 
+        {/* DIY Steps Card */}
+        {diagnosis?.diy_steps && Array.isArray(diagnosis.diy_steps) && diagnosis.diy_steps.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">DIY Fix Steps</h2>
+                <p className="text-sm text-gray-500">Try these solutions</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {diagnosis.diy_steps.map((step, index) => (
+                <div key={index} className="flex gap-4">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-sm font-medium">
+                    {index + 1}
+                  </div>
+                  <p className="text-gray-700 pt-0.5">{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Professional Help Card */}
         {diagnosis?.need_professional && (
           <div className="bg-red-50 rounded-2xl shadow-sm border border-red-200 p-6">
@@ -257,19 +306,6 @@ export default function DiagnosePage() {
           </div>
         )}
 
-        {/* No Diagnosis Fallback */}
-        {!diagnosis && (
-          <div className="bg-yellow-50 rounded-2xl shadow-sm border border-yellow-200 p-6">
-            <div className="text-center">
-              <svg className="w-12 h-12 text-yellow-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <h2 className="text-lg font-semibold text-yellow-900 mb-2">No AI Diagnosis Available</h2>
-              <p className="text-yellow-800">The AI was unable to analyze this problem. Please try submitting again with more details.</p>
-            </div>
-          </div>
-        )}
-
         {/* Action Buttons */}
         <div className="flex gap-3">
           <button
@@ -280,7 +316,6 @@ export default function DiagnosePage() {
           </button>
           <button
             onClick={() => {
-              // TODO: Navigate to problem log/history
               console.log("Navigate to problem log");
             }}
             className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-3 font-medium transition-colors"
@@ -289,7 +324,7 @@ export default function DiagnosePage() {
           </button>
         </div>
 
-        {/* Debug Info (shows original description) */}
+        {/* Debug Info */}
         {problem.description && (
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Original Description</h3>
