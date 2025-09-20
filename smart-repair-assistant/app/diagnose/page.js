@@ -2,6 +2,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import Navigation from "../components/Navigation";
 
 export default function DiagnosePage() {
   const searchParams = useSearchParams();
@@ -102,43 +103,12 @@ export default function DiagnosePage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="px-6 py-6">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-              </svg>
-              <span className="text-sm font-medium">Back</span>
-            </button>
-            <div className="text-center">
-              <h1 className="text-xl font-semibold text-gray-900">Diagnosis Results</h1>
-              <p className="text-sm text-gray-500">AI Analysis Complete</p>
-            </div>
-            
-            {/* User Avatar & Sign Out */}
-            {user && (
-              <div className="flex items-center gap-3">
-                {user.user_metadata?.avatar_url && (
-                  <img 
-                    src={user.user_metadata.avatar_url} 
-                    alt="Profile" 
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
-                <button
-                  onClick={signOut}
-                  className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
-            )}
-            
-            {/* Default space when not logged in */}
-            {!user && <div className="w-16"></div>}
-          </div>
+          <Navigation 
+            user={user} 
+            onSignOut={signOut} 
+            title="Diagnosis Results"
+            subtitle="AI Analysis Complete"
+          />
         </div>
       </div>
 
@@ -315,9 +285,7 @@ export default function DiagnosePage() {
             Report Another Problem
           </button>
           <button
-            onClick={() => {
-              console.log("Navigate to problem log");
-            }}
+            onClick={() => router.push('/log')}
             className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-3 font-medium transition-colors"
           >
             View Problem Log
