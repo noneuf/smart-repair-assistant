@@ -3,33 +3,140 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
+// Country code to phone prefix mapping
+const COUNTRY_PHONE_PREFIXES = {
+  'US': '+1',
+  'CA': '+1', 
+  'GB': '+44',
+  'AU': '+61',
+  'DE': '+49',
+  'FR': '+33',
+  'IT': '+39',
+  'ES': '+34',
+  'BR': '+55',
+  'MX': '+52',
+  'IN': '+91',
+  'CN': '+86',
+  'JP': '+81',
+  'KR': '+82',
+  'RU': '+7',
+  'ZA': '+27',
+  'EG': '+20',
+  'NG': '+234',
+  'KE': '+254',
+  'IL': '+972',
+  // Add more as needed
+};
+
+// Popular countries for the dropdown
+const POPULAR_COUNTRIES = [
+  { code: 'US', name: 'United States', prefix: '+1', flag: '🇺🇸' },
+  { code: 'CA', name: 'Canada', prefix: '+1', flag: '🇨🇦' },
+  { code: 'GB', name: 'United Kingdom', prefix: '+44', flag: '🇬🇧' },
+  { code: 'AU', name: 'Australia', prefix: '+61', flag: '🇦🇺' },
+  { code: 'DE', name: 'Germany', prefix: '+49', flag: '🇩🇪' },
+  { code: 'FR', name: 'France', prefix: '+33', flag: '🇫🇷' },
+  { code: 'IN', name: 'India', prefix: '+91', flag: '🇮🇳' },
+  { code: 'IL', name: 'Israel', prefix: '+972', flag: '🇮🇱' },
+];
+
 export default function AuthPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authMethod, setAuthMethod] = useState('social'); // 'social', 'phone', 'email'
-  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
+  const [authMethod, setAuthMethod] = useState('social');
+  const [authMode, setAuthMode] = useState('signin');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [showVerification, setShowVerification] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // New states for phone prefix functionality
+  const [countryCode, setCountryCode] = useState('US');
+  const [phonePrefix, setPhonePrefix] = useState('+1');
+  const [detectedCountry, setDetectedCountry] = useState(null);
+  const [showCountrySelector, setShowCountrySelector] = useState(false);
+
+  // Function to detect user's country via IP geolocation
+  const detectUserCountry = async () => {
+    try {
+      // Using a different free geolocation service that allows CORS
+      const response = await fetch('https://api.country.is/');
+      const data = await response.json();
+      
+      if (data.country && COUNTRY_PHONE_PREFIXES[data.country]) {
+        const detectedCode = data.country;
+        const detectedPrefix = COUNTRY_PHONE_PREFIXES[detectedCode];
+        
+        // Find country name from our list
+        const countryInfo = POPULAR_COUNTRIES.find(c => c.code === detectedCode);
+        
+        setDetectedCountry({
+          code: detectedCode,
+          name: countryInfo?.name || detectedCode,
+          prefix: detectedPrefix
+        });
+        
+        setCountryCode(detectedCode);
+        setPhonePrefix(detectedPrefix);
+        
+        console.log('Detected country:', detectedCode, 'with prefix:', detectedPrefix);
+      } else {
+        // Fallback: try to detect based on browser language
+        const browserLang = navigator.language || navigator.userLanguage;
+        const langCountry = browserLang.includes('-') ? browserLang.split('-')[1] : null;
+        
+        if (langCountry && COUNTRY_PHONE_PREFIXES[langCountry.toUpperCase()]) {
+          const detectedCode = langCountry.toUpperCase();
+          const detectedPrefix = COUNTRY_PHONE_PREFIXES[detectedCode];
+          
+          setCountryCode(detectedCode);
+          setPhonePrefix(detectedPrefix);
+          console.log('Detected country from browser language:', detectedCode);
+        }
+      }
+    } catch (error) {
+      console.log('Could not detect country:', error);
+      // Final fallback based on browser language
+      try {
+        const browserLang = navigator.language || navigator.userLanguage;
+        const langCountry = browserLang.includes('-') ? browserLang.split('-')[1] : null;
+        
+        if (langCountry && COUNTRY_PHONE_PREFIXES[langCountry.toUpperCase()]) {
+          const detectedCode = langCountry.toUpperCase();
+          const detectedPrefix = COUNTRY_PHONE_PREFIXES[detectedCode];
+          
+          setCountryCode(detectedCode);
+          setPhonePrefix(detectedPrefix);
+          console.log('Using browser language fallback:', detectedCode);
+        } else {
+          // Ultimate fallback to US
+          setCountryCode('US');
+          setPhonePrefix('+1');
+        }
+      } catch (e) {
+        // Ultimate fallback to US
+        setCountryCode('US');
+        setPhonePrefix('+1');
+      }
+    }
+  };
 
   useEffect(() => {
-    // Get initial session - keeping your exact logic
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       console.log('Session check:', { session, error });
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // Redirect if already logged in
       if (session?.user) {
         router.push('/');
       }
     });
 
-    // Listen for auth changes - keeping your exact logic
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event, session);
       setUser(session?.user ?? null);
@@ -40,10 +147,12 @@ export default function AuthPage() {
       }
     });
 
+    // Detect user's country when component mounts
+    detectUserCountry();
+
     return () => subscription.unsubscribe();
   }, [router]);
 
-  // Your existing Google sign-in function - unchanged
   const signInWithGoogle = async () => {
     try {
       setIsLoading(true);
@@ -59,7 +168,6 @@ export default function AuthPage() {
     }
   };
 
-  // Your existing sign-out function - unchanged
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -69,12 +177,17 @@ export default function AuthPage() {
     }
   };
 
-  // New phone authentication functions
   const signInWithPhone = async () => {
     try {
       setIsLoading(true);
+      // Combine prefix with phone number - ensuring we don't double-add prefix
+      const cleanPhoneNumber = phoneNumber.replace(/^[\s\-\(\)]+/, '').replace(/[^\d]/g, '');
+      const fullPhoneNumber = phonePrefix + cleanPhoneNumber;
+      
+      console.log('Sending SMS to:', fullPhoneNumber);
+      
       const { error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber
+        phone: fullPhoneNumber
       });
       if (error) throw error;
       setShowVerification(true);
@@ -90,8 +203,11 @@ export default function AuthPage() {
   const verifyPhone = async () => {
     try {
       setIsLoading(true);
+      const cleanPhoneNumber = phoneNumber.replace(/^[\s\-\(\)]+/, '').replace(/[^\d]/g, '');
+      const fullPhoneNumber = phonePrefix + cleanPhoneNumber;
+        
       const { error } = await supabase.auth.verifyOtp({
-        phone: phoneNumber,
+        phone: fullPhoneNumber,
         token: verificationCode,
         type: 'sms'
       });
@@ -104,7 +220,6 @@ export default function AuthPage() {
     }
   };
 
-  // New email authentication function
   const signInWithEmail = async () => {
     try {
       setIsLoading(true);
@@ -130,7 +245,28 @@ export default function AuthPage() {
     }
   };
 
-  // Your existing loading state - unchanged
+  // Handle country selection
+  const selectCountry = (country) => {
+    setCountryCode(country.code);
+    setPhonePrefix(country.prefix);
+    setShowCountrySelector(false);
+  };
+
+  // Format phone number as user types
+  const handlePhoneNumberChange = (e) => {
+    let value = e.target.value;
+    
+    // Remove the prefix if user types it
+    if (value.startsWith(phonePrefix)) {
+      value = value.substring(phonePrefix.length);
+    }
+    
+    // Remove any non-digit characters except spaces and dashes
+    value = value.replace(/[^\d\s\-\(\)]/g, '');
+    
+    setPhoneNumber(value);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -142,7 +278,6 @@ export default function AuthPage() {
     );
   }
 
-  // Your existing logged-in state - unchanged
   if (user) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -184,7 +319,6 @@ export default function AuthPage() {
     );
   }
 
-  // New modern sign-in interface
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -237,7 +371,7 @@ export default function AuthPage() {
             </button>
           </div>
 
-          {/* Social Auth - Your existing Google button with better styling */}
+          {/* Social Auth */}
           {authMethod === 'social' && (
             <div className="space-y-4">
               <button
@@ -260,28 +394,88 @@ export default function AuthPage() {
             </div>
           )}
 
-          {/* Phone Auth */}
+          {/* Enhanced Phone Auth with Auto-Prefix */}
           {authMethod === 'phone' && (
             <div className="space-y-4">
               {!showVerification ? (
                 <>
+                  {/* Country/Prefix Selector */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowCountrySelector(!showCountrySelector)}
+                        className="w-full flex items-center justify-between px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">
+                            {POPULAR_COUNTRIES.find(c => c.code === countryCode)?.flag || '🌍'}
+                          </span>
+                          <span className="font-medium">{phonePrefix}</span>
+                          <span className="text-gray-600">
+                            {POPULAR_COUNTRIES.find(c => c.code === countryCode)?.name || 'Country'}
+                          </span>
+                          {detectedCountry && countryCode === detectedCountry.code && (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                              Auto-detected
+                            </span>
+                          )}
+                        </div>
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </button>
+
+                      {/* Country Dropdown */}
+                      {showCountrySelector && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-60 overflow-y-auto">
+                          {POPULAR_COUNTRIES.map((country) => (
+                            <button
+                              key={country.code}
+                              type="button"
+                              onClick={() => selectCountry(country)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left"
+                            >
+                              <span className="text-lg">{country.flag}</span>
+                              <span className="font-medium text-gray-900">{country.prefix}</span>
+                              <span className="text-gray-600">{country.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone Number Input */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="+1 (555) 123-4567"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Note: Phone authentication requires Supabase configuration</p>
+                    <div className="flex">
+                      <div className="flex items-center px-4 py-3 border border-r-0 border-gray-300 rounded-l-xl bg-gray-50">
+                        <span className="font-medium text-gray-700">{phonePrefix}</span>
+                      </div>
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={handlePhoneNumberChange}
+                        placeholder="555 123 4567"
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-r-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {detectedCountry && countryCode === detectedCountry.code 
+                        ? `Detected your location: ${detectedCountry.name}`
+                        : 'Note: Phone authentication requires Supabase configuration'
+                      }
+                    </p>
                   </div>
+                  
                   <button
                     onClick={signInWithPhone}
                     disabled={isLoading || !phoneNumber}
                     className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-2xl py-4 font-medium transition-colors disabled:opacity-50"
                   >
-                    {isLoading ? 'Sending code...' : 'Send verification code'}
+                    {isLoading ? 'Sending code...' : `Send code to ${phonePrefix} ${phoneNumber}`}
                   </button>
                 </>
               ) : (
@@ -296,6 +490,9 @@ export default function AuthPage() {
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg tracking-widest"
                       maxLength="6"
                     />
+                    <p className="text-xs text-gray-500 mt-1 text-center">
+                      Code sent to {phonePrefix} {phoneNumber}
+                    </p>
                   </div>
                   <button
                     onClick={verifyPhone}

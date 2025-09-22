@@ -50,6 +50,30 @@ export default function ReportPage() {
     }
   }
 
+  // NEW: Remove functions
+  function removeImage() {
+    setImage(null);
+    setImageFile(null);
+    // Clear the file input
+    const imageInput = document.querySelector('input[type="file"][accept="image/*"]');
+    if (imageInput) imageInput.value = '';
+  }
+
+  function removeVideo() {
+    setVideo(null);
+    setVideoFile(null);
+    // Clear the file input
+    const videoInput = document.querySelector('input[type="file"][accept="video/*"]');
+    if (videoInput) videoInput.value = '';
+  }
+
+  function removeAudio() {
+    setAudioUrl(null);
+    setAudioFile(null);
+    setVoiceTranscript('');
+    setSeconds(0);
+  }
+
   async function startRecording() {
     setError("");
     setAudioUrl(null);
@@ -212,94 +236,208 @@ export default function ReportPage() {
       {/* Content */}
       <div className="px-6 py-6 space-y-6">
         
-        {/* Input Methods Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-base font-medium text-gray-900 mb-4">Choose input method</h2>
-          
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            
-            {/* Photo Button */}
-            <label className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              </svg>
-              <span className="text-sm font-medium text-slate-700">Photo</span>
-            </label>
 
-            {/* Video Button */}
-            <label className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-colors">
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleVideoChange}
-                className="hidden"
-              />
-              <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-              </svg>
-              <span className="text-sm font-medium text-slate-700">Video</span>
-            </label>
+{/* Input Methods Card */}
+<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+  <h2 className="text-base font-medium text-gray-900 mb-2">Choose input method</h2>
+  <p className="text-sm text-gray-600 mb-6">Combine multiple input methods for more accurate AI diagnosis. Photos, videos, voice recordings, and detailed descriptions all help our system better understand your problem.</p>
+  
+  <div className="grid grid-cols-2 gap-3 mb-6">
+    
+    {/* Photo Button */}
+    <label className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-colors">
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleImageChange}
+        className="hidden"
+      />
+      <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+      </svg>
+      <span className="text-sm font-medium text-slate-700">Photo</span>
+    </label>
 
-            {/* Voice Button */}
-            <button 
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-colors ${
-                isRecording 
-                  ? 'bg-red-50 hover:bg-red-100 border-red-200' 
-                  : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
-              }`}
-            >
-              <svg className={`w-6 h-6 mb-2 ${isRecording ? 'text-red-600' : 'text-slate-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-              </svg>
-              <span className={`text-sm font-medium ${isRecording ? 'text-red-700' : 'text-slate-700'}`}>
-                {isRecording ? "Stop" : "Voice"}
-              </span>
-              {isRecording && (
-                <span className="text-xs text-red-600 mt-1">
-                  {String(Math.floor(seconds / 60)).padStart(2, "0")}:
-                  {String(seconds % 60).padStart(2, "0")}
-                </span>
-              )}
-            </button>
+    {/* Video Button */}
+    <label className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-colors">
+      <input
+        type="file"
+        accept="video/*"
+        onChange={handleVideoChange}
+        className="hidden"
+      />
+      <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+      </svg>
+      <span className="text-sm font-medium text-slate-700">Video</span>
+    </label>
 
-            {/* Text Button */}
-            <button 
-              onClick={() => document.getElementById('description').focus()}
-              className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
-            >
-              <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-              </svg>
-              <span className="text-sm font-medium text-slate-700">Text</span>
-            </button>
+    {/* Voice Button */}
+    <button 
+      onClick={isRecording ? stopRecording : startRecording}
+      className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-colors ${
+        isRecording 
+          ? 'bg-red-50 hover:bg-red-100 border-red-200' 
+          : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
+      }`}
+    >
+      <svg className={`w-6 h-6 mb-2 ${isRecording ? 'text-red-600' : 'text-slate-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+      </svg>
+      <span className={`text-sm font-medium ${isRecording ? 'text-red-700' : 'text-slate-700'}`}>
+        {isRecording ? "Stop" : "Voice"}
+      </span>
+      {isRecording && (
+        <span className="text-xs text-red-600 mt-1">
+          {String(Math.floor(seconds / 60)).padStart(2, "0")}:
+          {String(seconds % 60).padStart(2, "0")}
+        </span>
+      )}
+    </button>
 
-          </div>
+    {/* Text Button */}
+    <button 
+      onClick={() => document.getElementById('description').focus()}
+      className="flex flex-col items-center justify-center p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
+    >
+      <svg className="w-6 h-6 text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+      </svg>
+      <span className="text-sm font-medium text-slate-700">Text</span>
+    </button>
 
-          {/* Description Textarea */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your problem in detail..."
-              className="w-full h-24 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-700 placeholder-gray-400"
-            />
-          </div>
-        </div>
+  </div>
 
-        {/* Voice Controls Card */}
+  {/* Description Textarea */}
+  <div className="mb-6">
+    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+    <textarea
+      id="description"
+      value={description}
+      onChange={(e) => setDescription(e.target.value)}
+      placeholder="Describe your problem in detail..."
+      className="w-full h-24 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-700 placeholder-gray-400"
+    />
+  </div>
+
+  {/* Submit Button - Now inside this card */}
+  <button
+    onClick={async (e) => {
+      e.preventDefault(); // Prevent any form submission behavior
+      setIsSaving(true);
+      setJustSaved(false);
+      
+      
+      console.log('Starting submission, user:', user?.id);
+      
+      try {
+        let imageUrl = null;
+        let videoUrl = null;
+        let audioPublicUrl = null;
+
+        // Upload media if present
+        if (imageFile) imageUrl = await uploadToStorage(imageFile, "images");
+        if (videoFile) videoUrl = await uploadToStorage(videoFile, "videos");
+        if (audioFile) audioPublicUrl = await uploadToStorage(audioFile, "audio");
+
+        console.log('Media uploaded, getting AI diagnosis...');
+
+        // Get AI diagnosis
+        let aiDiagnosis = null;
+        try {
+          const res = await fetch("/api/diagnose", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              description: description || "",
+              voice_transcript: voiceTranscript || "",
+              imageUrl: imageUrl || undefined,
+              videoUrl: videoUrl || undefined,
+            }),
+          });
+          const json = await res.json();
+          if (res.ok && json?.diagnosis) {
+            aiDiagnosis = json.diagnosis;
+          } else {
+            console.warn("Diagnosis failed:", json?.error);
+          }
+        } catch (e) {
+          console.warn("Diagnosis request error:", e);
+        }
+
+        console.log('AI diagnosis received, inserting to database...');
+
+        // Insert into database
+        const { data, error } = await supabase
+          .from("problems")
+          .insert([{
+            user_id: user?.id || null,
+            description,
+            image_url: imageUrl,
+            video_url: videoUrl,
+            audio_url: audioPublicUrl,
+            voice_transcript: voiceTranscript || null,
+            ai_diagnosis: aiDiagnosis,
+            status: "in_progress",
+          }])
+          .select("id, image_url, video_url, audio_url, voice_transcript, ai_diagnosis, created_at")
+          .single();
+
+        if (error) {
+          console.error("Database insert error:", error);
+          alert("Insert failed: " + error.message);
+          return;
+        }
+
+        console.log('Problem saved, redirecting to:', `/diagnose?id=${data.id}`);
+
+        setJustSaved(true);
+        setTimeout(() => setJustSaved(false), 900);
+
+        // Force navigation using window.location
+        window.location.href = `/diagnose?id=${data.id}`;
+
+        console.log("Inserted row:", data);
+      } catch (e) {
+        console.error(e);
+        alert("Upload/insert error: " + (e.message || "see console"));
+      } finally {
+        setIsSaving(false);
+      }
+    }}
+    disabled={isSaving || (!description && !voiceTranscript && !imageFile && !videoFile)}
+    className={`w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-4 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${justSaved ? 'bg-green-600 hover:bg-green-700' : ''}`}
+  >
+    {isSaving ? (
+      <span className="inline-flex items-center gap-2">
+        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+        </svg>
+        Processing & Saving...
+      </span>
+    ) : (
+      "Submit for AI Diagnosis"
+    )}
+  </button>
+</div>
+
+        {/* Voice Controls Card - UPDATED with remove button */}
         {audioUrl && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-base font-medium text-gray-900 mb-4">Voice Recording</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-medium text-gray-900">Voice Recording</h3>
+              <button
+                onClick={removeAudio}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                Remove
+              </button>
+            </div>
             
             <div className="mb-4">
               <audio controls src={audioUrl} className="w-full" />
@@ -335,21 +473,43 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Media Preview Cards */}
+        {/* Media Preview Cards - UPDATED with remove buttons */}
         {(image || video) && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h3 className="text-base font-medium text-gray-900 mb-4">Media Preview</h3>
             
             {image && (
               <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-2">Photo:</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-500">Photo:</p>
+                  <button
+                    onClick={removeImage}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Remove
+                  </button>
+                </div>
                 <img src={image} alt="Preview" className="w-full rounded-xl" />
               </div>
             )}
             
             {video && (
               <div>
-                <p className="text-sm text-gray-500 mb-2">Video:</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-500">Video:</p>
+                  <button
+                    onClick={removeVideo}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Remove
+                  </button>
+                </div>
                 <video controls className="w-full rounded-xl">
                   <source src={video} type="video/mp4" />
                   Your browser does not support the video tag.
@@ -359,106 +519,6 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Submit Button */}
-        <button
-          onClick={async (e) => {
-            e.preventDefault(); // Prevent any form submission behavior
-            setIsSaving(true);
-            setJustSaved(false);
-            
-            
-            console.log('Starting submission, user:', user?.id);
-            
-            try {
-              let imageUrl = null;
-              let videoUrl = null;
-              let audioPublicUrl = null;
-
-              // Upload media if present
-              if (imageFile) imageUrl = await uploadToStorage(imageFile, "images");
-              if (videoFile) videoUrl = await uploadToStorage(videoFile, "videos");
-              if (audioFile) audioPublicUrl = await uploadToStorage(audioFile, "audio");
-
-              console.log('Media uploaded, getting AI diagnosis...');
-
-              // Get AI diagnosis
-              let aiDiagnosis = null;
-              try {
-                const res = await fetch("/api/diagnose", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    description: description || "",
-                    voice_transcript: voiceTranscript || "",
-                    imageUrl: imageUrl || undefined,
-                    videoUrl: videoUrl || undefined,
-                  }),
-                });
-                const json = await res.json();
-                if (res.ok && json?.diagnosis) {
-                  aiDiagnosis = json.diagnosis;
-                } else {
-                  console.warn("Diagnosis failed:", json?.error);
-                }
-              } catch (e) {
-                console.warn("Diagnosis request error:", e);
-              }
-
-              console.log('AI diagnosis received, inserting to database...');
-
-              // Insert into database
-              const { data, error } = await supabase
-                .from("problems")
-                .insert([{
-                  user_id: user?.id || null,
-                  description,
-                  image_url: imageUrl,
-                  video_url: videoUrl,
-                  audio_url: audioPublicUrl,
-                  voice_transcript: voiceTranscript || null,
-                  ai_diagnosis: aiDiagnosis,
-                  status: "in_progress",
-                }])
-                .select("id, image_url, video_url, audio_url, voice_transcript, ai_diagnosis, created_at")
-                .single();
-
-              if (error) {
-                console.error("Database insert error:", error);
-                alert("Insert failed: " + error.message);
-                return;
-              }
-
-              console.log('Problem saved, redirecting to:', `/diagnose?id=${data.id}`);
-
-              setJustSaved(true);
-              setTimeout(() => setJustSaved(false), 900);
-
-              // Force navigation using window.location
-              window.location.href = `/diagnose?id=${data.id}`;
-
-              console.log("Inserted row:", data);
-            } catch (e) {
-              console.error(e);
-              alert("Upload/insert error: " + (e.message || "see console"));
-            } finally {
-              setIsSaving(false);
-            }
-          }}
-          disabled={isSaving || (!description && !voiceTranscript && !imageFile && !videoFile)}
-          className={`w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-4 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${justSaved ? 'bg-green-600 hover:bg-green-700' : ''}`}
-        >
-          {isSaving ? (
-            <span className="inline-flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-              </svg>
-              Processing & Saving...
-            </span>
-          ) : (
-            "Submit for AI Diagnosis"
-          )}
-        </button>
 
         {/* Error Display */}
         {error && (

@@ -67,7 +67,21 @@ export default function Navigation({ user, onSignOut, title, subtitle }) {
             >
               📋 Problem Log
             </button>
+            
             <hr className="my-2 border-gray-200" />
+            
+            <button
+              onClick={() => {
+                router.push('/settings');
+                setShowMenu(false);
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              ⚙️ Settings
+            </button>
+            
+            <hr className="my-2 border-gray-200" />
+            
             <button
               onClick={() => {
                 onSignOut();
