@@ -1,0 +1,48 @@
+Table,Field,Type,Description
+users,id,UUID (PK),Unique identifier
+users,type,"ENUM('user','professional')",Role type
+users,user_id,UUID (FK → auth.users.id),Link to authentication system
+users,business_name,VARCHAR(255) NULL,Optional business name
+users,description,TEXT NULL,Free text bio
+users,location_address,VARCHAR(500) NOT NULL,Full address
+users,location_lat,"DECIMAL(10,8) NULL",Latitude
+users,location_lng,"DECIMAL(11,8) NULL",Longitude
+users,phone,VARCHAR(20) NULL,"Private, editable only by owner"
+users,email,VARCHAR(255) NULL,"Private, editable only by owner"
+users,is_active,"ENUM('awaiting_approval','active','inactive','deleted')",Account status
+users,created_at,TIMESTAMP DEFAULT now(),Registration date
+users,updated_at,TIMESTAMP DEFAULT now(),Last modification
+professional_categories,id,UUID (PK),Unique identifier
+professional_categories,user_id,UUID (FK → users.id),Professional reference
+professional_categories,category,"ENUM('plumber','electrician','carpenter','painter','hvac','locksmith', ...)",Trade specialization
+professional_categories,qualifications,TEXT NULL,"Certifications, licenses"
+professional_categories,experience_years,INTEGER,Years of experience
+professional_categories,hourly_rate,"DECIMAL(8,2) NULL",Optional hourly rate
+problems,id,UUID (PK),Unique identifier
+problems,user_id,UUID (FK → auth.users.id),Problem reported by
+problems,professional_id,UUID (FK → users.id) NULL,Assigned professional (if any)
+problems,title,TEXT NULL,Problem title
+problems,description,TEXT NULL,Detailed description
+problems,ai_diagnosis,JSONB NULL,AI-generated diagnosis
+problems,status,"ENUM('in_progress','closed') DEFAULT 'in_progress'",Current state
+problems,created_at,TIMESTAMP DEFAULT now(),Creation date
+problems,updated_at,TIMESTAMP DEFAULT now(),Last modification
+professional_cases,id,UUID (PK),Unique identifier
+professional_cases,problem_id,UUID (FK → problems.id),Related problem
+professional_cases,professional_id,UUID (FK → users.id),Assigned professional
+professional_cases,client_contact,TEXT NULL,Contact info for client
+professional_cases,professional_notes,TEXT NULL,Private notes
+professional_cases,estimated_cost,"DECIMAL(10,2) NULL",Initial estimate
+professional_cases,actual_cost,"DECIMAL(10,2) NULL",Final cost
+professional_cases,status,"ENUM('contacted','accepted','in_progress','completed','cancelled')",Workflow state
+professional_cases,start_date,DATE NULL,Work started
+professional_cases,completion_date,DATE NULL,Work completed
+professional_cases,created_at,TIMESTAMP DEFAULT now(),Case creation date
+professional_cases,updated_at,TIMESTAMP DEFAULT now(),Last modification
+media,id,UUID (PK),Unique identifier
+media,problem_id,UUID (FK → problems.id),Linked problem
+media,url,TEXT NULL,File path / URL
+media,type,"ENUM('voice','text','video','image')",Media type
+media,status,BOOLEAN DEFAULT true,Active/inactive
+media,created_at,TIMESTAMP DEFAULT now(),Registration date
+media,updated_at,TIMESTAMP DEFAULT now(),Last modification
