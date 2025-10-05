@@ -222,7 +222,7 @@ export default function DiagnosePage() {
             </div>
             
             <p className="text-xs text-blue-700 mt-3">
-              *Estimates based on average market rates, actual costs may vary.
+              *Estimates based on average market rates. Actual costs may vary.
             </p>
           </div>
         )}
