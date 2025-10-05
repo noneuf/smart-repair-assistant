@@ -77,7 +77,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header with Navigation */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="px-6 py-4">
           <Navigation 
             user={user} 

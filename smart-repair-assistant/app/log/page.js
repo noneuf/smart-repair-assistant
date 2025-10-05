@@ -111,7 +111,7 @@ export default function ProblemLogPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="px-6 py-6">
           <Navigation 
             user={user} 

@@ -39,7 +39,7 @@ export default function Navigation({ user, onSignOut, title, subtitle }) {
         
         {/* Menu Dropdown */}
         {showMenu && (
-          <div className="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+          <div className="absolute left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-[60]">
             <button
               onClick={() => {
                 router.push('/');
