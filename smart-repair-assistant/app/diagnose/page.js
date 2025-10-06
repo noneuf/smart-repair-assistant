@@ -46,23 +46,43 @@ export default function DiagnosePage() {
       return;
     }
 
-    async function fetchProblem() {
-      try {
-        const { data, error } = await supabase
-          .from("problems")
-          .select("*")
-          .eq("id", problemId)
-          .single();
+async function fetchProblem() {
+  try {
+    // Fetch problem data
+    const { data: problemData, error: problemError } = await supabase
+      .from("problems")
+      .select("*")
+      .eq("id", problemId)
+      .single();
 
-        if (error) throw error;
-        setProblem(data);
-      } catch (err) {
-        console.error("Error fetching problem:", err);
-        setError("Failed to load diagnosis");
-      } finally {
-        setLoading(false);
-      }
-    }
+    if (problemError) throw problemError;
+
+    // Fetch media files for this problem
+    const { data: mediaData, error: mediaError } = await supabase
+      .from("media")
+      .select("*")
+      .eq("problem_id", problemId)
+      .eq("is_active", true);
+
+    if (mediaError) console.warn("Media fetch error:", mediaError);
+
+    // Combine problem data with media URLs for backward compatibility
+    const enrichedProblem = {
+      ...problemData,
+      image_url: mediaData?.find(m => m.type === 'image')?.url || null,
+      video_url: mediaData?.find(m => m.type === 'video')?.url || null,
+      audio_url: mediaData?.find(m => m.type === 'voice')?.url || null,
+      media: mediaData || [] // Also store all media as array
+    };
+
+    setProblem(enrichedProblem);
+  } catch (err) {
+    console.error("Error fetching problem:", err);
+    setError("Failed to load diagnosis");
+  } finally {
+    setLoading(false);
+  }
+}
 
     fetchProblem();
 

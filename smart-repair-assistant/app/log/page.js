@@ -54,24 +54,49 @@ export default function ProblemLogPage() {
     }
   }, [user]);
 
-  const fetchProblems = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("problems")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+const fetchProblems = async () => {
+  try {
+    setLoading(true);
+    
+    // Fetch all problems
+    const { data: problemsData, error: problemsError } = await supabase
+      .from("problems")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setProblems(data || []);
-    } catch (err) {
-      console.error("Error fetching problems:", err);
-      setError("Failed to load problems");
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (problemsError) throw problemsError;
+
+    // Fetch media for all problems
+    const problemIds = problemsData.map(p => p.id);
+    const { data: mediaData, error: mediaError } = await supabase
+      .from("media")
+      .select("*")
+      .in("problem_id", problemIds)
+      .eq("is_active", true);
+
+    if (mediaError) console.warn("Media fetch error:", mediaError);
+
+    // Enrich each problem with its first media URL
+    const enrichedProblems = problemsData.map(problem => {
+      const problemMedia = mediaData?.filter(m => m.problem_id === problem.id) || [];
+      return {
+        ...problem,
+        image_url: problemMedia.find(m => m.type === 'image')?.url || null,
+        video_url: problemMedia.find(m => m.type === 'video')?.url || null,
+        audio_url: problemMedia.find(m => m.type === 'voice')?.url || null,
+        media: problemMedia
+      };
+    });
+
+    setProblems(enrichedProblems || []);
+  } catch (err) {
+    console.error("Error fetching problems:", err);
+    setError("Failed to load problems");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatusColor = (status) => {
     switch (status) {

@@ -369,20 +369,62 @@ export default function ReportPage() {
         console.log('AI diagnosis received, inserting to database...');
 
         // Insert into database
-        const { data, error } = await supabase
-          .from("problems")
-          .insert([{
-            user_id: user?.id || null,
-            description,
-            image_url: imageUrl,
-            video_url: videoUrl,
-            audio_url: audioPublicUrl,
-            voice_transcript: voiceTranscript || null,
-            ai_diagnosis: aiDiagnosis,
-            status: "in_progress",
-          }])
-          .select("id, image_url, video_url, audio_url, voice_transcript, ai_diagnosis, created_at")
-          .single();
+const { data, error } = await supabase
+  .from("problems")
+  .insert([{
+    user_id: user?.id || null,
+    description,
+    voice_transcript: voiceTranscript || null,
+    ai_diagnosis: aiDiagnosis,
+    status: "in_progress",
+  }])
+  .select("id, voice_transcript, ai_diagnosis, created_at")
+  .single();
+
+if (error) {
+  console.error("Database insert error:", error);
+  alert("Insert failed: " + error.message);
+  return;
+}
+
+// Insert media files into media table
+const mediaInserts = [];
+if (imageUrl) {
+  mediaInserts.push({
+    problem_id: data.id,
+    url: imageUrl,
+    type: 'image',
+    is_active: true
+  });
+}
+if (videoUrl) {
+  mediaInserts.push({
+    problem_id: data.id,
+    url: videoUrl,
+    type: 'video',
+    is_active: true
+  });
+}
+if (audioPublicUrl) {
+  mediaInserts.push({
+    problem_id: data.id,
+    url: audioPublicUrl,
+    type: 'voice',
+    is_active: true
+  });
+}
+
+// Save media if any exists
+if (mediaInserts.length > 0) {
+  const { error: mediaError } = await supabase
+    .from("media")
+    .insert(mediaInserts);
+    
+  if (mediaError) {
+    console.error("Media insert error:", mediaError);
+    // Don't fail the whole operation, just log it
+  }
+}
 
         if (error) {
           console.error("Database insert error:", error);

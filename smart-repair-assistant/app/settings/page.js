@@ -70,7 +70,7 @@ export default function SettingsPage() {
       // Get problem statistics
       const { data: problems, error: problemsError } = await supabase
         .from('problems')
-        .select('status, created_at, image_url, video_url, audio_url')
+        .select('id, status, created_at')
         .eq('user_id', userId);
 
       if (problemsError) throw problemsError;
@@ -79,9 +79,17 @@ export default function SettingsPage() {
       const fixedProblems = problems?.filter(p => p.status === 'fixed').length || 0;
       const inProgressProblems = problems?.filter(p => p.status === 'in_progress').length || 0;
 
-      // Calculate approximate storage usage
-      const mediaFiles = problems?.filter(p => p.image_url || p.video_url || p.audio_url).length || 0;
-      const estimatedStorageMB = mediaFiles * 2; // Rough estimate: 2MB per media file
+      // Get media count for storage estimation
+      const problemIds = problems?.map(p => p.id) || [];
+      const { data: mediaFiles, error: mediaError } = await supabase
+        .from('media')
+        .select('id')
+        .in('problem_id', problemIds);
+
+      if (mediaError) console.warn('Error fetching media for stats:', mediaError);
+
+      const mediaCount = mediaFiles?.length || 0;
+      const estimatedStorageMB = mediaCount * 2; // Rough estimate: 2MB per media file
 
       setUserStats({
         totalProblems,
@@ -145,10 +153,10 @@ export default function SettingsPage() {
       
       console.log('Starting data deletion for user:', user.id);
       
-      // First, let's see what data exists
+      // Get all problems for this user
       const { data: existingProblems, error: fetchError } = await supabase
         .from('problems')
-        .select('id, image_url, video_url, audio_url')
+        .select('id')
         .eq('user_id', user.id);
       
       if (fetchError) {
@@ -160,40 +168,45 @@ export default function SettingsPage() {
       console.log('Found problems to delete:', existingProblems?.length || 0);
       
       if (existingProblems && existingProblems.length > 0) {
-        // Delete files from storage first (if any)
-        for (const problem of existingProblems) {
-          if (problem.image_url) {
+        const problemIds = existingProblems.map(p => p.id);
+        
+        // Get all media for these problems
+        const { data: mediaFiles, error: mediaError } = await supabase
+          .from('media')
+          .select('*')
+          .in('problem_id', problemIds);
+        
+        if (mediaError) {
+          console.warn('Error fetching media:', mediaError);
+        }
+        
+        // Delete files from storage
+        if (mediaFiles && mediaFiles.length > 0) {
+          for (const media of mediaFiles) {
             try {
-              const imagePath = problem.image_url.split('/').pop();
-              await supabase.storage.from('problem-images').remove([imagePath]);
-              console.log('Deleted image:', imagePath);
+              // Extract filename from URL
+              const urlParts = media.url.split('/');
+              const fileName = urlParts[urlParts.length - 1];
+              
+              await supabase.storage.from('problem-media').remove([`images/${fileName}`, `videos/${fileName}`, `audio/${fileName}`]);
+              console.log('Deleted file:', fileName);
             } catch (e) {
-              console.warn('Could not delete image:', e);
-            }
-          }
-          
-          if (problem.video_url) {
-            try {
-              const videoPath = problem.video_url.split('/').pop();
-              await supabase.storage.from('problem-videos').remove([videoPath]);
-              console.log('Deleted video:', videoPath);
-            } catch (e) {
-              console.warn('Could not delete video:', e);
-            }
-          }
-          
-          if (problem.audio_url) {
-            try {
-              const audioPath = problem.audio_url.split('/').pop();
-              await supabase.storage.from('problem-audio').remove([audioPath]);
-              console.log('Deleted audio:', audioPath);
-            } catch (e) {
-              console.warn('Could not delete audio:', e);
+              console.warn('Could not delete file:', e);
             }
           }
         }
         
-        // Now delete the database records
+        // Delete media records from database
+        const { error: mediaDeleteError } = await supabase
+          .from('media')
+          .delete()
+          .in('problem_id', problemIds);
+        
+        if (mediaDeleteError) {
+          console.warn('Error deleting media records:', mediaDeleteError);
+        }
+        
+        // Now delete the problems
         const { error: deleteError } = await supabase
           .from('problems')
           .delete()
@@ -201,7 +214,7 @@ export default function SettingsPage() {
 
         if (deleteError) {
           console.error('Database deletion error:', deleteError);
-          alert('Error deleting data from database: ' + deleteError.message + '\nPlease check console for details.');
+          alert('Error deleting data from database: ' + deleteError.message);
           return;
         }
         
@@ -251,7 +264,7 @@ export default function SettingsPage() {
       
     } catch (error) {
       console.error('Error deleting user data:', error);
-      alert('Error deleting data: ' + error.message + '\nCheck browser console for more details.');
+      alert('Error deleting data: ' + error.message);
     } finally {
       setIsUpdating(false);
     }
@@ -268,10 +281,10 @@ export default function SettingsPage() {
       
       console.log('Starting account deletion process for user:', user.id);
       
-      // First delete all user data (reuse the data deletion logic)
+      // Get all problems for this user
       const { data: existingProblems, error: fetchError } = await supabase
         .from('problems')
-        .select('id, image_url, video_url, audio_url')
+        .select('id')
         .eq('user_id', user.id);
       
       if (fetchError) {
@@ -279,26 +292,40 @@ export default function SettingsPage() {
       }
       
       if (existingProblems && existingProblems.length > 0) {
+        const problemIds = existingProblems.map(p => p.id);
+        
+        // Get all media for these problems
+        const { data: mediaFiles, error: mediaError } = await supabase
+          .from('media')
+          .select('*')
+          .in('problem_id', problemIds);
+        
+        if (mediaError) {
+          console.warn('Error fetching media:', mediaError);
+        }
+        
         // Delete files from storage
-        for (const problem of existingProblems) {
-          if (problem.image_url) {
+        if (mediaFiles && mediaFiles.length > 0) {
+          for (const media of mediaFiles) {
             try {
-              const imagePath = problem.image_url.split('/').pop();
-              await supabase.storage.from('problem-images').remove([imagePath]);
-            } catch (e) { console.warn('Could not delete image:', e); }
+              const urlParts = media.url.split('/');
+              const fileName = urlParts[urlParts.length - 1];
+              
+              await supabase.storage.from('problem-media').remove([`images/${fileName}`, `videos/${fileName}`, `audio/${fileName}`]);
+            } catch (e) {
+              console.warn('Could not delete file:', e);
+            }
           }
-          if (problem.video_url) {
-            try {
-              const videoPath = problem.video_url.split('/').pop();
-              await supabase.storage.from('problem-videos').remove([videoPath]);
-            } catch (e) { console.warn('Could not delete video:', e); }
-          }
-          if (problem.audio_url) {
-            try {
-              const audioPath = problem.audio_url.split('/').pop();
-              await supabase.storage.from('problem-audio').remove([audioPath]);
-            } catch (e) { console.warn('Could not delete audio:', e); }
-          }
+        }
+        
+        // Delete media records
+        const { error: mediaDeleteError } = await supabase
+          .from('media')
+          .delete()
+          .in('problem_id', problemIds);
+        
+        if (mediaDeleteError) {
+          console.warn('Error deleting media records:', mediaDeleteError);
         }
         
         // Delete database records
@@ -314,7 +341,7 @@ export default function SettingsPage() {
         }
       }
 
-      // Mark user for deletion by clearing all metadata and setting a deletion flag
+      // Mark user for deletion
       const { error: updateError } = await supabase.auth.updateUser({
         data: { 
           full_name: '[DELETED USER]',
@@ -353,7 +380,6 @@ export default function SettingsPage() {
         console.error('Error sending admin notification:', notificationError);
       }
 
-      // Create a more informative message
       const message = `Account deletion initiated successfully!
 
 What happened:
@@ -373,7 +399,7 @@ If you change your mind, you can create a new account with the same email addres
       
     } catch (error) {
       console.error('Error during account deletion:', error);
-      alert('Error during account deletion: ' + error.message + '\nYour data has been removed but account deletion may need manual processing. Contact support if needed.');
+      alert('Error during account deletion: ' + error.message);
     } finally {
       setIsUpdating(false);
     }
